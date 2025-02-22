@@ -21,7 +21,7 @@ public class BankStatementPdfController {
     private PdfProcessorService pdfProcessorService;
 
     @GetMapping("/gettext")
-    public ResponseEntity<List<String>> getAllPdfText(@ModelAttribute FileRequest fileRequest) throws IOException {
+    public ResponseEntity<List<Transaction>> getAllTransactionsFromFile(@ModelAttribute FileRequest fileRequest) throws IOException {
         return ResponseEntity.status(HttpStatus.OK).
                 body(pdfProcessorService.getAllPdfText(fileRequest));
     }
