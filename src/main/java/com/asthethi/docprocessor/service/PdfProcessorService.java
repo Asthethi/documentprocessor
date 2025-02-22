@@ -39,61 +39,6 @@ public class PdfProcessorService {
         }
     }
 
-//    public static List<String> extractGroceryTransactions(MultipartFile file) throws IOException {
-//        try (InputStream inputStream = file.getInputStream();
-//             PDDocument document = PDDocument.load(inputStream)) {
-//
-//            PDFTextStripper stripper = new PDFTextStripper();
-//            String pdfContent = stripper.getText(document);
-//
-//            List<String> transactions = new ArrayList<>();
-//            StringBuilder currentTransaction = new StringBuilder();
-//            boolean isNewTransaction = true;
-//
-//            for (String line : pdfContent.split("\\r?\\n")) {
-//                Matcher matcher = DATE_PATTERN.matcher(line);
-//                int dateCount = 0;
-//
-//                // Count occurrences of the date in the current line
-//                while (matcher.find()) {
-//                    dateCount++;
-//                }
-//
-//                if (dateCount > 0 && isNewTransaction) {
-//                    // If a new transaction starts, save the previous one
-//                    if (currentTransaction.length() > 0) {
-//                        transactions.add(currentTransaction.toString().trim());
-//                    }
-//                    currentTransaction.setLength(0); // Reset for new transaction
-//                    isNewTransaction = false; // Prevent false splits
-//                }
-//
-//                // Append line to the transaction
-//                currentTransaction.append(line).append(" ");
-//
-//                // If we encounter a third occurrence of a date, treat it as a new transaction
-//                if (dateCount == 2) {
-//                    isNewTransaction = true;
-//                }
-//            }
-//
-//            // Add the last transaction if any
-//            if (currentTransaction.length() > 0) {
-//                transactions.add(currentTransaction.toString().trim());
-//            }
-//
-//            // Filter transactions containing "GROCERY"
-//            List<String> groceryTransactions = new ArrayList<>();
-//            for (String transaction : transactions) {
-//                if (transaction.toUpperCase().contains("GROCERY")) {
-//                    groceryTransactions.add(transaction);
-//                }
-//            }
-//
-//            return groceryTransactions;
-//        }
-//    }
-
     public static List<String> getAllTransactionsFromPdf(MultipartFile documentFile) throws IOException {
         StringBuilder aTransaction  = new StringBuilder();
         List<String> transactions = new ArrayList<>();
