@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -80,14 +81,14 @@ public class PdfProcessorService {
         return transactions;
     }
 
-    public static List<Transaction> getAllTransactionsFromTxt(MultipartFile txtFile) throws IOException {
+    private static List<Transaction> getAllTransactionsFromTxt(MultipartFile txtFile) throws IOException {
 
-        File filePath = new File(txtFile.getOriginalFilename());
+        InputStream inputStream = txtFile.getInputStream();
 
         String line;
         List<Transaction> allTransactions = new ArrayList<>();
 
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
 
             br.readLine();
             String headers = br.readLine();
@@ -107,5 +108,12 @@ public class PdfProcessorService {
         }
 
         return allTransactions;
+    }
+
+    public List<Transaction> getSpecificCategoryTransactions(String transactionCategory, MultipartFile document) throws IOException {
+        List<Transaction> allTransactions = getAllTransactionsFromTxt(document);
+        return allTransactions.stream().
+                filter(transaction -> transaction.getNarration().contains(transactionCategory.toUpperCase())).
+                collect(Collectors.toList());
     }
 }
