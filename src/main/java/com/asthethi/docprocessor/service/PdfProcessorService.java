@@ -13,8 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -96,11 +95,11 @@ public class PdfProcessorService {
             while ((line = br.readLine()) != null) {
                 String[] transaction = line.trim().split(",");
 
-                allTransactions.add(new Transaction(transaction[0],
-                        transaction[1],
+                allTransactions.add(new Transaction(transaction[0].trim(),
+                        transaction[1].trim(),
                         Double.valueOf(transaction[3]),
                         Double.valueOf(transaction[4]),
-                        transaction[5],
+                        transaction[5].trim(),
                         transaction[6],
                         null));
 
@@ -115,5 +114,40 @@ public class PdfProcessorService {
         return allTransactions.stream().
                 filter(transaction -> transaction.getNarration().contains(transactionCategory.toUpperCase())).
                 collect(Collectors.toList());
+    }
+
+    public HashMap<String, Double> getCategoryWiseTotalExpense(MultipartFile document) throws IOException {
+
+        if(Objects.isNull(document)){
+            //TODO: Log Exception here
+        }
+
+        HashMap<String, Double> categoryWiseTotalExpense = new HashMap<>();
+        String[] categories = {"grocery", "sride", "petrol", "ACH", "BILL"};
+        List<Transaction> allTransactions = getAllTransactionsFromTxt(document);
+        Arrays.asList(categories).forEach(category -> {
+            categoryWiseTotalExpense.
+                    put(category, getTotalExpense(category, allTransactions));
+        });
+        return categoryWiseTotalExpense;
+    }
+
+    private double getTotalExpense(String category, List<Transaction> allTransactions) {
+        double totalExpense = 0;
+        for (Transaction transaction : allTransactions) {
+
+            // Convert category to uppercase once to avoid repetition
+            String categoryUpper = category.toUpperCase();
+
+            // Check for ACH category condition and the common case for other categories
+            if (transaction.getNarration().contains(categoryUpper)) {
+                if (categoryUpper.equals(ApplicationConstants.TRANSACTION_CATEGORY_ACH) && transaction.getNarration().contains(ApplicationConstants.HDFC_BANK_STRING)) {
+                    totalExpense += transaction.getDebitAmount();
+                } else if (!categoryUpper.equals(ApplicationConstants.TRANSACTION_CATEGORY_ACH)) {
+                    totalExpense += transaction.getDebitAmount();
+                }
+            }
+        }
+        return Double.parseDouble(String.format("%.2f", totalExpense));
     }
 }
