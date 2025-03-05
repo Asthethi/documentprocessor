@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 @Service
 @AllArgsConstructor
 @Slf4j
-public class PdfProcessorService {
+public class BankStatementProcessorService {
 
     private TransactionMapper transactionMapper;
 
@@ -33,7 +33,7 @@ public class PdfProcessorService {
 
     private static final Pattern DATE_PATTERN = Pattern.compile("\\b\\d{2}/\\d{2}/\\d{2}\\b");
 
-    public List<TransactionResponse> getAllPdfText(FileRequest fileRequest) throws IOException {
+    public List<TransactionResponse> getTransactions(FileRequest fileRequest) throws IOException {
         log.info("File Type : {}", fileRequest.getFileType());
         log.info("File Name : {}", fileRequest.getDocument().getOriginalFilename());
         switch (fileRequest.getFileType()) {
@@ -41,7 +41,7 @@ public class PdfProcessorService {
                 throw new UnsupportedDocumentException("PDF file is not supported");
             }
             case TEXT -> {
-                return getAllTransactionsFromTxt(fileRequest.getDocument())
+                return getAllTransactionsFromTxtStatement(fileRequest.getDocument())
                         .stream().map(transactionMapper :: toTransactionResponse).toList();
             }
             default -> throw new UnsupportedDocumentException(ApplicationConstants.UNSUPPORTED_DOCUMENT_TYPE_ERR);
@@ -89,7 +89,7 @@ public class PdfProcessorService {
         return transactions;
     }
 
-    private static List<Transaction> getAllTransactionsFromTxt(MultipartFile txtFile) throws IOException {
+    private static List<Transaction> getAllTransactionsFromTxtStatement(MultipartFile txtFile) throws IOException {
 
         InputStream inputStream = txtFile.getInputStream();
 
@@ -119,20 +119,15 @@ public class PdfProcessorService {
     }
 
     public List<Transaction> getSpecificCategoryTransactions(String transactionCategory, MultipartFile document) throws IOException {
-        List<Transaction> allTransactions = getAllTransactionsFromTxt(document);
+        List<Transaction> allTransactions = getAllTransactionsFromTxtStatement(document);
         return allTransactions.stream().
                 filter(transaction -> transaction.getNarration().contains(transactionCategory.toUpperCase())).
                 collect(Collectors.toList());
     }
 
     public HashMap<String, Double> getCategoryWiseTotalExpense(MultipartFile document) throws IOException {
-
-        if(Objects.isNull(document)){
-            //TODO: Log Exception here
-        }
-
         HashMap<String, Double> categoryWiseTotalExpense = new HashMap<>();
-        List<Transaction> allTransactions = getAllTransactionsFromTxt(document);
+        List<Transaction> allTransactions = getAllTransactionsFromTxtStatement(document);
         Arrays.asList(allowedCountriesArray).forEach(category -> {
             categoryWiseTotalExpense.
                     put(category, getTotalExpense(category, allTransactions));
