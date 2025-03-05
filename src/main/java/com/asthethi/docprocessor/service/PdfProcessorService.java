@@ -2,12 +2,15 @@ package com.asthethi.docprocessor.service;
 
 import com.asthethi.docprocessor.constants.ApplicationConstants;
 import com.asthethi.docprocessor.exception.UnsupportedDocumentException;
+import com.asthethi.docprocessor.mapper.TransactionMapper;
 import com.asthethi.docprocessor.model.FileRequest;
 import com.asthethi.docprocessor.model.Transaction;
+import com.asthethi.docprocessor.model.TransactionResponse;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,9 +26,14 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PdfProcessorService {
 
+    private TransactionMapper transactionMapper;
+
+    @Value("${bank.statement-expense-categories}")
+    private String[] allowedCountriesArray;
+
     private static final Pattern DATE_PATTERN = Pattern.compile("\\b\\d{2}/\\d{2}/\\d{2}\\b");
 
-    public List<Transaction> getAllPdfText(FileRequest fileRequest) throws IOException {
+    public List<TransactionResponse> getAllPdfText(FileRequest fileRequest) throws IOException {
         log.info("File Type : {}", fileRequest.getFileType());
         log.info("File Name : {}", fileRequest.getDocument().getOriginalFilename());
         switch (fileRequest.getFileType()) {
@@ -33,7 +41,8 @@ public class PdfProcessorService {
                 throw new UnsupportedDocumentException("PDF file is not supported");
             }
             case TEXT -> {
-                return getAllTransactionsFromTxt(fileRequest.getDocument());
+                return getAllTransactionsFromTxt(fileRequest.getDocument())
+                        .stream().map(transactionMapper :: toTransactionResponse).toList();
             }
             default -> throw new UnsupportedDocumentException(ApplicationConstants.UNSUPPORTED_DOCUMENT_TYPE_ERR);
         }
@@ -123,9 +132,8 @@ public class PdfProcessorService {
         }
 
         HashMap<String, Double> categoryWiseTotalExpense = new HashMap<>();
-        String[] categories = {"grocery", "sride", "petrol", "ACH", "BILL"};
         List<Transaction> allTransactions = getAllTransactionsFromTxt(document);
-        Arrays.asList(categories).forEach(category -> {
+        Arrays.asList(allowedCountriesArray).forEach(category -> {
             categoryWiseTotalExpense.
                     put(category, getTotalExpense(category, allTransactions));
         });
@@ -149,5 +157,9 @@ public class PdfProcessorService {
             }
         }
         return Double.parseDouble(String.format("%.2f", totalExpense));
+    }
+
+    public List<String> getAllExpenseCategories() {
+        return Arrays.asList(allowedCountriesArray);
     }
 }

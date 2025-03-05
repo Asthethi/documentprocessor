@@ -3,11 +3,13 @@ package com.asthethi.docprocessor.controller;
 import com.asthethi.docprocessor.model.FileRequest;
 import com.asthethi.docprocessor.model.Transaction;
 import com.asthethi.docprocessor.model.TransactionCategoryRequest;
+import com.asthethi.docprocessor.model.TransactionResponse;
 import com.asthethi.docprocessor.service.PdfProcessorService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -24,10 +26,11 @@ public class BankStatementPdfController {
 
     private PdfProcessorService pdfProcessorService;
 
-    @GetMapping("/transactions/all")
-    public ResponseEntity<List<Transaction>> getAllPdfText(@ModelAttribute @Valid FileRequest fileRequest) throws IOException {
+    @PostMapping(value = "/transactions/all" , consumes = "multipart/form-data" , produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TransactionResponse>> getAllPdfText(@ModelAttribute @Valid FileRequest fileRequest) throws IOException {
+        List<TransactionResponse> allTransactions = pdfProcessorService.getAllPdfText(fileRequest);
         return ResponseEntity.status(HttpStatus.OK).
-                body(pdfProcessorService.getAllPdfText(fileRequest));
+                body(allTransactions);
     }
 
     @GetMapping("/transactions/category")
@@ -44,5 +47,10 @@ public class BankStatementPdfController {
             (@RequestParam MultipartFile document) throws IOException {
         HashMap<String, Double> expenses = pdfProcessorService.getCategoryWiseTotalExpense(document);
         return ResponseEntity.status(HttpStatus.OK).body(expenses);
+    }
+
+    @GetMapping(value = "/expensecategories", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<String>> getAllExpenseCategories(){
+        return ResponseEntity.status(HttpStatus.OK).body(pdfProcessorService.getAllExpenseCategories());
     }
 }
