@@ -49,4 +49,11 @@ public class BankStatementController {
     public ResponseEntity<List<String>> getAllExpenseCategories(){
         return ResponseEntity.status(HttpStatus.OK).body(bankStatementProcessorService.getAllExpenseCategories());
     }
+
+    @PostMapping(value = "/transactions/monthwise/expense", consumes = "multipart/form-data" , produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<HashMap<String, Double>> getMonthWiseExpenseReport
+            (@RequestParam MultipartFile document) throws IOException {
+        HashMap<String, Double> expenses = bankStatementProcessorService.getMonthWiseExpenseReport(document);
+        return ResponseEntity.status(HttpStatus.OK).body(expenses);
+    }
 }

@@ -16,6 +16,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 
 import java.io.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,7 +33,7 @@ public class BankStatementProcessorService {
     private TransactionMapper transactionMapper;
 
     @Value("${bank.statement-expense-categories}")
-    private String[] allowedCountriesArray;
+    private String[] allowedCategoryList;
 
     private static final Pattern DATE_PATTERN = Pattern.compile("\\b\\d{2}/\\d{2}/\\d{2}\\b");
 
@@ -128,7 +132,7 @@ public class BankStatementProcessorService {
     public HashMap<String, Double> getCategoryWiseTotalExpense(MultipartFile document) throws IOException {
         HashMap<String, Double> categoryWiseTotalExpense = new HashMap<>();
         List<Transaction> allTransactions = getAllTransactionsFromTxtStatement(document);
-        Arrays.asList(allowedCountriesArray).forEach(category -> {
+        Arrays.asList(allowedCategoryList).forEach(category -> {
             categoryWiseTotalExpense.
                     put(category, getTotalExpense(category, allTransactions));
         });
@@ -155,6 +159,33 @@ public class BankStatementProcessorService {
     }
 
     public List<String> getAllExpenseCategories() {
-        return Arrays.asList(allowedCountriesArray);
+        return Arrays.asList(allowedCategoryList);
     }
+
+    public LinkedHashMap<String, Double> getMonthWiseExpenseReport(MultipartFile document) throws IOException {
+        List<Transaction> allTransactions = getAllTransactionsFromTxtStatement(document);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yy");
+        LinkedHashMap<String, Double> categoryWiseTotalExpense = new LinkedHashMap<>();
+
+        for(Transaction transaction : allTransactions){
+            LocalDate date = LocalDate.parse(transaction.getTransactionDate(), formatter);
+            String transactionMonth = date.getMonth().name();
+            double debitAmount = transaction.getDebitAmount();
+
+            if(debitAmount > 0){
+                categoryWiseTotalExpense.merge(transactionMonth, transaction.getDebitAmount(),
+                        (oldValue, newValue) -> roundToTwoDecimals(oldValue + newValue));
+            }
+        }
+
+        return categoryWiseTotalExpense;
+    }
+
+
+    public static double roundToTwoDecimals(double value) {
+        return BigDecimal.valueOf(value)
+                .setScale(2, RoundingMode.HALF_UP) // Rounds to 2 decimal places
+                .doubleValue();
+    }
+
 }
