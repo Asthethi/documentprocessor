@@ -38,7 +38,7 @@ public class BankStatementController {
                         transactionCategoryRequest.getDocument()));
     }
 
-    @GetMapping("/transactions/category/totalexpense")
+    @PostMapping(value = "/transactions/category/totalexpense", consumes = "multipart/form-data" , produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<HashMap<String, Double>> getCategoryWiseTotalExpense
             (@RequestParam MultipartFile document) throws IOException {
         HashMap<String, Double> expenses = bankStatementProcessorService.getCategoryWiseTotalExpense(document);
