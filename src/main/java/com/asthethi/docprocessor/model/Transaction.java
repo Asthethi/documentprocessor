@@ -16,4 +16,5 @@ public class Transaction {
     private String refNumber;
     private String closingBalance;
     private String transactionType;
+    private String transactionCategory;
 }

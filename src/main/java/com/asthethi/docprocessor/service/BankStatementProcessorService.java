@@ -21,6 +21,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -93,7 +94,7 @@ public class BankStatementProcessorService {
         return transactions;
     }
 
-    private static List<Transaction> getAllTransactionsFromTxtStatement(MultipartFile txtFile) throws IOException {
+    private List<Transaction> getAllTransactionsFromTxtStatement(MultipartFile txtFile) throws IOException {
 
         InputStream inputStream = txtFile.getInputStream();
 
@@ -106,18 +107,35 @@ public class BankStatementProcessorService {
             String headers = br.readLine();
 
             while ((line = br.readLine()) != null) {
-                String[] transaction = line.trim().split(",");
 
-                allTransactions.add(new Transaction(transaction[0].trim(),
-                        transaction[1].trim(),
-                        Double.valueOf(transaction[3]),
-                        Double.valueOf(transaction[4]),
-                        transaction[5].trim(),
-                        transaction[6],
-                        null));
+                String[] transaction = line.trim().split(",");
+                String narration = transaction[1].trim();
+                String transactionCategory = null;
+
+                for (String category : allowedCategoryList) {
+
+                    if (category.equals(ApplicationConstants.TRANSACTION_CATEGORY_ACH)) {
+                        if (narration.toUpperCase().contains(ApplicationConstants.TRANSACTION_CATEGORY_ACH) && narration.toUpperCase().contains(ApplicationConstants.HDFC_BANK_STRING)) {
+                            transactionCategory = category;
+                        }
+                    } else {
+                        if (narration.toUpperCase().contains(category)) {
+                            transactionCategory = category;
+                        }
+                    }
+                }
+
+                if(Objects.isNull(transactionCategory)){
+                    transactionCategory = "Misc";
+                }
+
+                allTransactions.add(new Transaction(transaction[0].trim(), transaction[1].trim(),
+                        Double.valueOf(transaction[3]), Double.valueOf(transaction[4]), transaction[5].trim(), transaction[6],
+                        null, transactionCategory));
 
             }
         }
+
 
         return allTransactions;
     }
@@ -162,30 +180,40 @@ public class BankStatementProcessorService {
         return Arrays.asList(allowedCategoryList);
     }
 
-    public LinkedHashMap<String, Double> getMonthWiseExpenseReport(MultipartFile document) throws IOException {
+    public LinkedHashMap<String, Map<String, Object>> getMonthWiseExpenseReport(MultipartFile document) throws IOException {
         List<Transaction> allTransactions = getAllTransactionsFromTxtStatement(document);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yy");
-        LinkedHashMap<String, Double> categoryWiseTotalExpense = new LinkedHashMap<>();
+        LinkedHashMap<String, Map<String, Object>> monthWiseReport = new LinkedHashMap<>();
 
-        for(Transaction transaction : allTransactions){
+        for (Transaction transaction : allTransactions) {
             LocalDate date = LocalDate.parse(transaction.getTransactionDate(), formatter);
             String transactionMonth = date.getMonth().name();
             double debitAmount = transaction.getDebitAmount();
 
-            if(debitAmount > 0){
-                categoryWiseTotalExpense.merge(transactionMonth, transaction.getDebitAmount(),
-                        (oldValue, newValue) -> roundToTwoDecimals(oldValue + newValue));
+            if (debitAmount > 0) {
+
+                monthWiseReport.putIfAbsent(transactionMonth, new LinkedHashMap<>());
+                Map<String, Object> monthData = monthWiseReport.get(transactionMonth);
+
+                // Update total expense for the month
+                monthData.put("expense", roundToTwoDecimals(
+                        (double) monthData.getOrDefault("expense", 0.0) + debitAmount
+                ));
+
+                // Update category-wise expense
+                Map<String, Double> categoryWiseExpense = (Map<String, Double>) monthData.getOrDefault("details", new LinkedHashMap<>());
+                categoryWiseExpense.merge(transaction.getTransactionCategory(), debitAmount, (oldValue, newValue) -> roundToTwoDecimals(oldValue + newValue));
+
+                monthData.put("details", categoryWiseExpense);
             }
         }
 
-        return categoryWiseTotalExpense;
+        return monthWiseReport;
     }
-
 
     public static double roundToTwoDecimals(double value) {
         return BigDecimal.valueOf(value)
                 .setScale(2, RoundingMode.HALF_UP) // Rounds to 2 decimal places
                 .doubleValue();
     }
-
 }

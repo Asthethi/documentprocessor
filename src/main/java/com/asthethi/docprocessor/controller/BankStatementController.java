@@ -15,7 +15,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @AllArgsConstructor
@@ -51,9 +53,9 @@ public class BankStatementController {
     }
 
     @PostMapping(value = "/transactions/monthwise/expense", consumes = "multipart/form-data" , produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<HashMap<String, Double>> getMonthWiseExpenseReport
+    public ResponseEntity<LinkedHashMap<String, Map<String, Object>>> getMonthWiseExpenseReport
             (@RequestParam MultipartFile document) throws IOException {
-        HashMap<String, Double> expenses = bankStatementProcessorService.getMonthWiseExpenseReport(document);
+        LinkedHashMap<String, Map<String, Object>> expenses = bankStatementProcessorService.getMonthWiseExpenseReport(document);
         return ResponseEntity.status(HttpStatus.OK).body(expenses);
     }
 }
