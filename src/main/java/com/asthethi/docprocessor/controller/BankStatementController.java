@@ -6,6 +6,7 @@ import com.asthethi.docprocessor.model.TransactionCategoryRequest;
 import com.asthethi.docprocessor.model.TransactionResponse;
 import com.asthethi.docprocessor.service.BankStatementProcessorService;
 import jakarta.validation.Valid;
+import jakarta.websocket.server.PathParam;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,8 +29,9 @@ public class BankStatementController {
 
     @PostMapping(value = "/transactions/all" , consumes = "multipart/form-data" , produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TransactionResponse>> getTransactions(@ModelAttribute @Valid FileRequest fileRequest) throws IOException {
+        List<TransactionResponse> response = bankStatementProcessorService.getTransactions(fileRequest);
         return ResponseEntity.status(HttpStatus.OK).
-                body(bankStatementProcessorService.getTransactions(fileRequest));
+                body(response);
     }
 
     @GetMapping("/transactions/category")
@@ -57,5 +59,15 @@ public class BankStatementController {
             (@RequestParam MultipartFile document) throws IOException {
         LinkedHashMap<String, Map<String, Object>> expenses = bankStatementProcessorService.getMonthWiseExpenseReport(document);
         return ResponseEntity.status(HttpStatus.OK).body(expenses);
+    }
+    @PostMapping(value = "/transactions/save" , consumes = "multipart/form-data" , produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> saveTransactions(){
+        return null;
+    }
+
+    @PostMapping(value = "/transactions/save/{month}" , consumes = "multipart/form-data" , produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TransactionResponse>> getSpecificMonthTransactions(@RequestParam MultipartFile document,
+                                                             @PathParam("month") String month){
+        return ResponseEntity.status(HttpStatus.OK).body(bankStatementProcessorService.getTransactionByMonth(document , month));
     }
 }
