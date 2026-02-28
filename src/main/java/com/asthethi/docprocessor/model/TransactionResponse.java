@@ -1,14 +1,12 @@
 package com.asthethi.docprocessor.model;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 @Getter
 @Setter
 @Builder
 @ToString
+@AllArgsConstructor
 public class TransactionResponse {
     private String transactionDate;
     private String narration;
@@ -17,4 +15,5 @@ public class TransactionResponse {
     private String refNumber;
     private String closingBalance;
     private String transactionType;
+    private String transactionCategory;
 }
