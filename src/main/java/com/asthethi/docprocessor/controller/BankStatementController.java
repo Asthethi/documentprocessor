@@ -1,0 +1,73 @@
+package com.asthethi.docprocessor.controller;
+
+import com.asthethi.docprocessor.model.FileRequest;
+import com.asthethi.docprocessor.model.Transaction;
+import com.asthethi.docprocessor.model.TransactionCategoryRequest;
+import com.asthethi.docprocessor.model.TransactionResponse;
+import com.asthethi.docprocessor.service.BankStatementProcessorService;
+import jakarta.validation.Valid;
+import jakarta.websocket.server.PathParam;
+import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@AllArgsConstructor
+@RequestMapping("account/statement")
+public class BankStatementController {
+
+    private BankStatementProcessorService bankStatementProcessorService;
+
+    @PostMapping(value = "/transactions/all" , consumes = "multipart/form-data" , produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TransactionResponse>> getTransactions(@ModelAttribute @Valid FileRequest fileRequest) throws IOException {
+        List<TransactionResponse> response = bankStatementProcessorService.getTransactions(fileRequest);
+        return ResponseEntity.status(HttpStatus.OK).
+                body(response);
+    }
+
+    @GetMapping("/transactions/category")
+    public ResponseEntity<List<Transaction>> getSpecificCategoryTransactions(@ModelAttribute @Valid
+                                                                             TransactionCategoryRequest transactionCategoryRequest) throws IOException {
+        return ResponseEntity.status(HttpStatus.OK).body(bankStatementProcessorService.
+                getSpecificCategoryTransactions(transactionCategoryRequest.getCategory(),
+                        transactionCategoryRequest.getDocument()));
+    }
+
+    @PostMapping(value = "/transactions/category/totalexpense", consumes = "multipart/form-data" , produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<HashMap<String, Double>> getCategoryWiseTotalExpense
+            (@RequestParam MultipartFile document) throws IOException {
+        HashMap<String, Double> expenses = bankStatementProcessorService.getCategoryWiseTotalExpense(document);
+        return ResponseEntity.status(HttpStatus.OK).body(expenses);
+    }
+
+    @GetMapping(value = "/expensecategories", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<String>> getAllExpenseCategories(){
+        return ResponseEntity.status(HttpStatus.OK).body(bankStatementProcessorService.getAllExpenseCategories());
+    }
+
+    @PostMapping(value = "/transactions/monthwise/expense", consumes = "multipart/form-data" , produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<LinkedHashMap<String, Map<String, Object>>> getMonthWiseExpenseReport
+            (@RequestParam MultipartFile document) throws IOException {
+        LinkedHashMap<String, Map<String, Object>> expenses = bankStatementProcessorService.getMonthWiseExpenseReport(document);
+        return ResponseEntity.status(HttpStatus.OK).body(expenses);
+    }
+    @PostMapping(value = "/transactions/save" , consumes = "multipart/form-data" , produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> saveTransactions(){
+        return null;
+    }
+
+    @PostMapping(value = "/transactions/save/{month}" , consumes = "multipart/form-data" , produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TransactionResponse>> getSpecificMonthTransactions(@RequestParam MultipartFile document,
+                                                             @PathParam("month") String month){
+        return ResponseEntity.status(HttpStatus.OK).body(bankStatementProcessorService.getTransactionByMonth(document , month));
+    }
+}

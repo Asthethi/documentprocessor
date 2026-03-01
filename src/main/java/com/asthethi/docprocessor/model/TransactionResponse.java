@@ -4,11 +4,10 @@ import lombok.*;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
 @ToString
-public class Transaction {
+@AllArgsConstructor
+public class TransactionResponse {
     private String transactionDate;
     private String narration;
     private Double debitAmount;
