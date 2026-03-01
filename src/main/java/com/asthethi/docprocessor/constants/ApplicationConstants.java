@@ -6,6 +6,6 @@ public class ApplicationConstants {
     public static final String HDFC_BANK_STRING = "HDFC BANK LTD";
     public static final String TRANSACTION_CATEGORY_ACH = "ACH";
     public static final String HDFC_BANK = "HDFC";
-    public static final String ICICI_BANK = "HDFC";
+    public static final String ICICI_BANK = "ICICI";
 }
 
