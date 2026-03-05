@@ -25,8 +25,8 @@ public class BankStatementService {
 
     public BankStatement saveStatement(List<TransactionResponse> request, String bankName) {
         List<Transaction> transactions = transactionMapper.toTransactionList(request);
-        BankStatement transaction = transactionMapper.fromTransactionResponse(transactions, bankName);
-        return statementRepository.save(transaction);
+        BankStatement statement = transactionMapper.fromTransactionResponse(transactions, bankName);
+        return statementRepository.save(statement);
     }
 
 }
