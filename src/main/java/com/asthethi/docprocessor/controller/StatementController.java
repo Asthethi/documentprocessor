@@ -2,9 +2,10 @@ package com.asthethi.docprocessor.controller;
 
 import com.asthethi.docprocessor.factory.BankParserFactory;
 import com.asthethi.docprocessor.model.FileRequest;
-import com.asthethi.docprocessor.model.Transaction;
 import com.asthethi.docprocessor.model.TransactionCategoryRequest;
 import com.asthethi.docprocessor.model.TransactionResponse;
+import com.asthethi.docprocessor.model.entity.BankStatement;
+import com.asthethi.docprocessor.service.BankStatementService;
 import com.asthethi.docprocessor.statementparsers.BankParser;
 import jakarta.validation.Valid;
 import jakarta.websocket.server.PathParam;
@@ -27,6 +28,8 @@ import java.util.Map;
 public class StatementController {
 
     private BankParserFactory bankParserFactory;
+
+    private BankStatementService bankStatementService;
 
     @PostMapping(value = "all/transactions/{bankName}", consumes = "multipart/form-data", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TransactionResponse>> getTransactions(@ModelAttribute @Valid FileRequest fileRequest,
@@ -66,8 +69,10 @@ public class StatementController {
         LinkedHashMap<String, Map<String, Object>> expenses = bankParserFactory.getBankParser(bankName).getMonthWiseExpenseReport(document);
         return ResponseEntity.status(HttpStatus.OK).body(expenses);
     }
-    @PostMapping(value = "/transactions/save" , consumes = "multipart/form-data" , produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Void> saveTransactions(){
+    @PostMapping(value = "/transactions/bankstatement/save/{bankName}" , consumes = MediaType.APPLICATION_JSON_VALUE , produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> saveBankStatement(@RequestBody List<TransactionResponse> request, @PathVariable String bankName){
+        this.bankStatementService.saveStatement(request, bankName);
+        List<BankStatement> response = this.bankStatementService.fetchAllTransactions();
         return null;
     }
 
