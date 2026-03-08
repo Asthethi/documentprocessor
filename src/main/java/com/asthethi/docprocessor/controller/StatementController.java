@@ -70,10 +70,9 @@ public class StatementController {
         return ResponseEntity.status(HttpStatus.OK).body(expenses);
     }
     @PostMapping(value = "/transactions/bankstatement/save/{bankName}" , consumes = MediaType.APPLICATION_JSON_VALUE , produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Void> saveBankStatement(@RequestBody List<TransactionResponse> request, @PathVariable String bankName){
-        this.bankStatementService.saveStatement(request, bankName);
-        List<BankStatement> response = this.bankStatementService.fetchAllTransactions();
-        return null;
+    public ResponseEntity<BankStatement> saveBankStatement(@RequestBody List<TransactionResponse> request, @PathVariable String bankName){
+        List<BankStatement> savedTransactions = this.bankStatementService.fetchAllTransactions();
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.bankStatementService.saveStatement(request, bankName));
     }
 
     @PostMapping(value = "/transactions/save/{bankName}/{month}" , consumes = "multipart/form-data" , produces = MediaType.APPLICATION_JSON_VALUE)
