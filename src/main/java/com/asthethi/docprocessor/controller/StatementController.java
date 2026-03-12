@@ -71,7 +71,7 @@ public class StatementController {
     }
     @PostMapping(value = "/transactions/bankstatement/save/{bankName}" , consumes = MediaType.APPLICATION_JSON_VALUE , produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BankStatement> saveBankStatement(@RequestBody List<TransactionResponse> request, @PathVariable String bankName){
-        List<BankStatement> savedTransactions = this.bankStatementService.fetchAllTransactions();
+        List<BankStatement> savedTransactions = getAllBankStatement().getBody();
         return ResponseEntity.status(HttpStatus.CREATED).body(this.bankStatementService.saveStatement(request, bankName));
     }
 
@@ -80,5 +80,10 @@ public class StatementController {
                                                                                   @PathParam("month") String month,
                                                                                   @PathVariable("bankName") String bankName){
         return ResponseEntity.status(HttpStatus.OK).body(bankParserFactory.getBankParser(bankName).getTransactionByMonth(document , month));
+    }
+
+    @GetMapping(value= "/all")
+    public ResponseEntity<List<BankStatement>> getAllBankStatement() {
+        return ResponseEntity.status(HttpStatus.OK).body(bankStatementService.fetchAllBankStatements());
     }
 }

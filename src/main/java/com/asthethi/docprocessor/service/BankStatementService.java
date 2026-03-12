@@ -19,7 +19,7 @@ public class BankStatementService {
     @Autowired
     private TransactionMapper transactionMapper;
 
-    public List<BankStatement> fetchAllTransactions() {
+    public List<BankStatement> fetchAllBankStatements() {
         return this.statementRepository.findAll();
     }
 
