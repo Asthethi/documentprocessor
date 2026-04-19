@@ -6,6 +6,7 @@ import com.asthethi.docprocessor.model.FileRequest;
 import com.asthethi.docprocessor.model.FileType;
 import com.asthethi.docprocessor.model.TransactionResponse;
 import jakarta.annotation.PostConstruct;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -23,10 +25,10 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
+@AllArgsConstructor
 public class HdfcBankParser implements BankParser {
 
-    @Autowired
-    private TransactionMapper transactionMapper;
+    Map<String, List<String>> trxCategoryKeywords = new HashMap<>();
 
     @Value("${bank.statement-expense-categories}")
     private String[] allowedCategoryList;
@@ -35,17 +37,9 @@ public class HdfcBankParser implements BankParser {
 
     private List<TransactionResponse> transactions;
 
-    @Autowired
     private HdfcTxtStatementParser hdfcTxtStatementParser;
 
-    @Autowired
     private HdfcPdfStatementParser hdfcPdfStatementParser;
-
-    private static final Pattern DATE_PATTERN = Pattern.compile("\\b\\d{2}/\\d{2}/\\d{2}\\b");
-    private static final Pattern BALANCE_PATTERN =
-            Pattern.compile("\\d{1,3}(,\\d{3})*\\.\\d{2}$");
-
-    private static final Pattern TRANSACTION_PATTERN = Pattern.compile("^(\\d{2}/\\d{2}/\\d{2})\\s+(.*?)\\s+(\\S+)\\s+(\\d{2}/\\d{2}/\\d{2})\\s+([\\d,]+\\.\\d{2})\\s+([\\d,]+\\.\\d{2})\\s*$");
 
     @PostConstruct
     public void init(){
@@ -73,12 +67,10 @@ public class HdfcBankParser implements BankParser {
     }
 
     @Override
-    public HashMap<String, Double> getCategoryWiseTotalExpense(MultipartFile document) throws IOException {
+    public Map<String, Double> getCategoryWiseTotalExpense(MultipartFile document) throws IOException {
         HashMap<String, Double> categoryWiseTotalExpense = new HashMap<>();
-        Arrays.asList(allowedCategoryList).forEach(category -> {
-            categoryWiseTotalExpense.
-                    put(category, getTotalExpense(category, this.transactions));
-        });
+        Arrays.asList(allowedCategoryList).forEach(category -> categoryWiseTotalExpense.
+                put(category, getTotalExpense(category, this.transactions)));
         return categoryWiseTotalExpense;
     }
 
@@ -114,7 +106,11 @@ public class HdfcBankParser implements BankParser {
         for (TransactionResponse transaction : this.transactions) {
             LocalDate date = LocalDate.parse(transaction.getTransactionDate(), formatter);
             String transactionMonth = date.getMonth().name();
-            double debitAmount = transaction.getDebitAmount();
+
+            double debitAmount = 0.0;
+            if(Objects.nonNull(transaction.getDebitAmount())) {
+                debitAmount = transaction.getDebitAmount();
+            }
 
             if (debitAmount > 0) {
 

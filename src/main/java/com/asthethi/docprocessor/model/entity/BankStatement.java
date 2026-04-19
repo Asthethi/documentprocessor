@@ -1,6 +1,5 @@
 package com.asthethi.docprocessor.model.entity;
 
-import com.asthethi.docprocessor.model.TransactionResponse;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

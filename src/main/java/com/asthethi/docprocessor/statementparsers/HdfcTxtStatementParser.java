@@ -3,13 +3,12 @@ package com.asthethi.docprocessor.statementparsers;
 import com.asthethi.docprocessor.constants.ApplicationConstants;
 import com.asthethi.docprocessor.mapper.TransactionMapper;
 import com.asthethi.docprocessor.model.FileRequest;
-import com.asthethi.docprocessor.model.Transaction;
 import com.asthethi.docprocessor.model.TransactionResponse;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
@@ -22,12 +21,12 @@ import java.util.Objects;
 
 @Slf4j
 @Component
+@AllArgsConstructor
 public class HdfcTxtStatementParser implements StatementFileParser {
 
     @Value("${bank.statement-expense-categories}")
     private String[] allowedCategoryList;
 
-    @Autowired
     private TransactionMapper transactionMapper;
 
     @Override
@@ -75,7 +74,6 @@ public class HdfcTxtStatementParser implements StatementFileParser {
             }
         }
 
-        //return allTransactions.stream().map(transactionMapper::toTransactionResponse).toList();
         return allTransactions;
     }
 

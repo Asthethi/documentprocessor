@@ -6,6 +6,7 @@ import com.asthethi.docprocessor.model.TransactionCategoryRequest;
 import com.asthethi.docprocessor.model.TransactionResponse;
 import com.asthethi.docprocessor.model.entity.BankStatement;
 import com.asthethi.docprocessor.service.BankStatementService;
+import com.asthethi.docprocessor.service.TransactionCategoryService;
 import com.asthethi.docprocessor.statementparsers.BankParser;
 import jakarta.validation.Valid;
 import jakarta.websocket.server.PathParam;
@@ -31,6 +32,8 @@ public class StatementController {
 
     private BankStatementService bankStatementService;
 
+    private TransactionCategoryService transactionCategoryService;
+
     @PostMapping(value = "all/transactions/{bankName}", consumes = "multipart/form-data", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TransactionResponse>> getTransactions(@ModelAttribute @Valid FileRequest fileRequest,
                                                                      @PathVariable("bankName") String bankName) throws IOException {
@@ -51,9 +54,9 @@ public class StatementController {
     }
 
     @PostMapping(value = "/transactions/category/totalexpense/{bankName}", consumes = "multipart/form-data" , produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<HashMap<String, Double>> getCategoryWiseTotalExpense
+    public ResponseEntity<Map<String, Double>> getCategoryWiseTotalExpense
             (@RequestParam MultipartFile document, @PathVariable("bankName") String bankName) throws IOException {
-        HashMap<String, Double> expenses = bankParserFactory.getBankParser(bankName).getCategoryWiseTotalExpense(document);
+        Map<String, Double> expenses = bankParserFactory.getBankParser(bankName).getCategoryWiseTotalExpense(document);
         return ResponseEntity.status(HttpStatus.OK).body(expenses);
     }
 
@@ -85,5 +88,10 @@ public class StatementController {
     @GetMapping(value= "/all")
     public ResponseEntity<List<BankStatement>> getAllBankStatement() {
         return ResponseEntity.status(HttpStatus.OK).body(bankStatementService.fetchAllBankStatements());
+    }
+
+    @GetMapping("/test/{name}")
+    public ResponseEntity<String> testEndpoint(@PathVariable String name) {
+        return ResponseEntity.status(HttpStatus.OK).body("Hello "+ name);
     }
 }

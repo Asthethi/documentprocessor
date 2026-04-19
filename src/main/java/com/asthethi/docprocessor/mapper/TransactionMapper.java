@@ -26,17 +26,15 @@ public class TransactionMapper {
 
         List<com.asthethi.docprocessor.model.entity.Transaction> transactions = new ArrayList<>();
 
-        transactionResponseList.forEach(transaction -> {
-            transactions.add(com.asthethi.docprocessor.model.entity.Transaction.builder().transactionDate(transaction.getTransactionDate())
-                    .transactionCategory(transaction.getTransactionCategory())
-                    .transactionType(transaction.getTransactionType())
-                    .narration(transaction.getNarration())
-                    .refNumber(transaction.getRefNumber())
-                    .debitAmount(transaction.getDebitAmount())
-                    .creditAmount(transaction.getCreditAmount())
-                    .closingBalance(transaction.getClosingBalance())
-                    .build());
-        });
+        transactionResponseList.forEach(transaction -> transactions.add(com.asthethi.docprocessor.model.entity.Transaction.builder().transactionDate(transaction.getTransactionDate())
+                .transactionCategory(transaction.getTransactionCategory())
+                .transactionType(transaction.getTransactionType())
+                .narration(transaction.getNarration())
+                .refNumber(transaction.getRefNumber())
+                .debitAmount(transaction.getDebitAmount())
+                .creditAmount(transaction.getCreditAmount())
+                .closingBalance(transaction.getClosingBalance())
+                .build()));
 
         return transactions;
     }

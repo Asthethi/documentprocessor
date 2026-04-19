@@ -5,18 +5,17 @@ import com.asthethi.docprocessor.model.TransactionResponse;
 import com.asthethi.docprocessor.model.entity.BankStatement;
 import com.asthethi.docprocessor.model.entity.Transaction;
 import com.asthethi.docprocessor.reporitory.StatementRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@AllArgsConstructor
 public class BankStatementService {
 
-    @Autowired
     private StatementRepository statementRepository;
 
-    @Autowired
     private TransactionMapper transactionMapper;
 
     public List<BankStatement> fetchAllBankStatements() {

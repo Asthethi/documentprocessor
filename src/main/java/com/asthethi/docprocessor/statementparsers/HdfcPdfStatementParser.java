@@ -1,17 +1,23 @@
 package com.asthethi.docprocessor.statementparsers;
 
-import com.asthethi.docprocessor.constants.ApplicationConstants;
+import com.asthethi.docprocessor.model.CategoryKeyword;
 import com.asthethi.docprocessor.model.FileRequest;
 import com.asthethi.docprocessor.model.TransactionResponse;
+import com.asthethi.docprocessor.model.entity.TransactionCategory;
+import com.asthethi.docprocessor.service.TransactionCategoryService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -30,6 +36,9 @@ public class HdfcPdfStatementParser implements StatementFileParser{
             Pattern.compile("\\d{1,3}(,\\d{3})*\\.\\d{2}$");
 
     private static final Pattern TRANSACTION_PATTERN = Pattern.compile("^(\\d{2}/\\d{2}/\\d{2})\\s+(.*?)\\s+(\\S+)\\s+(\\d{2}/\\d{2}/\\d{2})\\s+([\\d,]+\\.\\d{2})\\s+([\\d,]+\\.\\d{2})\\s*$");
+
+    @Autowired
+    private TransactionCategoryService transactionCategoryService;
 
 
     @Override
@@ -50,34 +59,17 @@ public class HdfcPdfStatementParser implements StatementFileParser{
             String pdfContent = stripper.getText(document);
             String pdfLines[] = pdfContent.split("\\r?\\n");
 
+            Double previousTrx = null;
+
             for (String line : pdfLines) {
-                String transactionCategory = null;
                 if (isTransactionRow(line)) {
 
                     if (currentTrx != null) {
                         transactionResponseList.add(currentTrx);
                     }
 
-                    currentTrx = extractTransaction(line);
-                    //start
-                    for (String category : allowedCategoryList) {
-
-                        if (category.equals(ApplicationConstants.TRANSACTION_CATEGORY_ACH)) {
-                            if (currentTrx.getNarration().toUpperCase().contains(ApplicationConstants.TRANSACTION_CATEGORY_ACH) && currentTrx.getNarration().toUpperCase().toUpperCase().contains(ApplicationConstants.HDFC_BANK_STRING)) {
-                                transactionCategory = category;
-                            }
-                        } else {
-                            if (currentTrx.getNarration().toUpperCase().contains(category)) {
-                                transactionCategory = category;
-                            }
-                        }
-                    }
-
-                    if (Objects.isNull(transactionCategory)) {
-                        transactionCategory = "Misc";
-                    }
-                    currentTrx.setTransactionCategory(transactionCategory);
-                    //end
+                    currentTrx = extractTransaction(line, previousTrx);
+                    previousTrx = Double.valueOf(currentTrx.getClosingBalance());
 
 
                 } else if (currentTrx != null && isTrxNarration(line)) {
@@ -91,12 +83,32 @@ public class HdfcPdfStatementParser implements StatementFileParser{
 
         }
 
-//        transactionResponseList.forEach(t -> {
-//            System.out.println(t.toString());
-//        });
-//        System.out.println(transactionResponseList.size());
+        for(TransactionResponse transactionResponse : transactionResponseList) {
+            this.trxCategoryProvider(transactionResponse);
+            log.error("Narration : " + transactionResponse.getNarration() + " trx category : " + transactionResponse.getTransactionCategory() + "**Amount : " + transactionResponse.getDebitAmount());
+        }
 
         return transactionResponseList;
+    }
+
+    private void trxCategoryProvider(TransactionResponse transactionResponse) {
+
+        List<TransactionCategory> trxCategories =
+                this.transactionCategoryService.findAllCategories();
+
+        for (TransactionCategory trxCategory : trxCategories) {
+            for (CategoryKeyword categoryKeyword : trxCategory.getKeywords()) {
+
+                if (transactionResponse.getNarration().toLowerCase().contains(categoryKeyword.getKeyword().toLowerCase())) {
+                    transactionResponse.setTransactionCategory(trxCategory.getName().split("\\.")[1]);
+                }
+            }
+        }
+
+        if(Objects.isNull(transactionResponse.getTransactionCategory())) {
+            transactionResponse.setTransactionCategory("misc");
+        }
+
     }
 
     private static boolean isTrxNarration(String line) {
@@ -115,10 +127,31 @@ public class HdfcPdfStatementParser implements StatementFileParser{
                 !line.contains("HDFC BANK LIMITED") &&
                 !line.contains("GSTIN number") &&
                 !line.contains("Registered Office") &&
-                !line.contains("State account");
+                !line.contains("State account") &&
+                !line.contains("Statement of account") &&
+                !line.contains("Page No") &&
+                !line.contains("Account Branch") &&
+                !line.contains("Address") &&
+                !line.contains("City") &&
+                !line.contains("State") &&
+                !line.contains("Phone no") &&
+                !line.contains("OD Limit") &&
+                !line.contains("Email :") &&
+                !line.contains("Cust ID :") &&
+                !line.contains("Account No :") &&
+                !line.contains("A/C Open Date :") &&
+                !line.contains("Account Status :") &&
+                !line.contains("JOINT HOLDERS :") &&
+                !line.contains("RTGS/NEFT IFSC:") &&
+                !line.contains("Branch Code :") &&
+                !line.contains("Account Type :") &&
+                !line.contains("Statement From") &&
+                !line.contains("Nomination : Registered") &&
+                !line.contains("RAJIV GANDHI INFOTECH PARK,") &&
+                !line.contains("NR TATA JOHNSON CONTROLS,");
     }
 
-    private static TransactionResponse extractTransaction(String line) {
+    private static TransactionResponse extractTransaction(String line, Double previousBalance) {
 
         Matcher matcher = TRANSACTION_PATTERN.matcher(line.trim());
 
@@ -126,21 +159,33 @@ public class HdfcPdfStatementParser implements StatementFileParser{
             throw new IllegalArgumentException("Invalid transaction row: " + line);
         }
 
+        double amount = Double.parseDouble(matcher.group(5).replace(",", ""));
+        Double debitAmount = null;
+        Double creditAmount = null;
+
+        double closingBalance = Double.parseDouble(matcher.group(6).replace(",", ""));
+
+        if (previousBalance != null) {
+            if (closingBalance < previousBalance) {
+                debitAmount = amount;
+                creditAmount = 0.0;
+            } else {
+                creditAmount = amount;
+                debitAmount = 0.0;
+            }
+        }
+
         return TransactionResponse.builder()
                 .transactionDate(matcher.group(1))
                 .narration(matcher.group(2))
                 .refNumber(matcher.group(3))
                 .debitAmount(
-                        matcher.group(5) != null
-                                ? Double.valueOf(matcher.group(5).replace(",", ""))
-                                : null
+                        debitAmount
                 )
                 .creditAmount(
-                        matcher.group(5) != null
-                                ? Double.valueOf(matcher.group(6).replace(",", ""))
-                                : null
+                        creditAmount
                 )
-                .closingBalance(matcher.group(6))
+                .closingBalance(matcher.group(6).replace(",", ""))
                 .build();
     }
 
